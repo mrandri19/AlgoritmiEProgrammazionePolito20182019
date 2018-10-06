@@ -1,0 +1,4 @@
+3
+$11$ pelle
+$2$ pollo
+$333$ palla
