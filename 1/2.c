@@ -51,7 +51,7 @@ void replace(char *line, char *from, int to) {
     strcat(new_line, to_str);
 
     // append into new_line, line, starting from the end of the current match
-    strcat(new_line, line+position+strlen(from));
+    strcat(new_line, line + position + strlen(from));
 
     // copy the new_line into the line to continue looping for the substitutions
     strcpy(line, new_line);
@@ -59,14 +59,14 @@ void replace(char *line, char *from, int to) {
     // Start searching from the the end of the last match
     start_from = position + strlen(from);
   }
-
 }
 
 int main() {
   FILE *dic_fp = fopen("dizionario.txt", "r");
   FILE *source_fp = fopen("sorgente.txt", "r");
+  FILE *out_fp = fopen("ricodificato.txt", "w");
 
-  if (dic_fp == NULL || source_fp == NULL) {
+  if (dic_fp == NULL || source_fp == NULL || out_fp == NULL) {
     perror("Couldn't open both files\n");
     return -1;
   }
@@ -85,11 +85,12 @@ int main() {
     for (int i = 0; i < substitution_len; ++i) {
       replace(line, substitutions[i].from, substitutions[i].to);
     }
-    printf("%s", line);
+    fprintf(out_fp, "%s", line);
   }
 
   fclose(source_fp);
   fclose(dic_fp);
+  fclose(out_fp);
 
   return 0;
 }
