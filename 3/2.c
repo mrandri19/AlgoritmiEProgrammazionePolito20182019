@@ -4,17 +4,14 @@
 #include <stdlib.h>
 
 void stampaCodifica(void *number, unsigned long size, bool bigEndian);
-void get_bits(void *number, unsigned char bits[], unsigned long size);
+void get_bits(void *number, unsigned char bits[], unsigned long size,
+              bool bigEndian);
 void print_bits(unsigned char bits[], unsigned long size);
 
-// number: a generic floating point number
-// bits[]: an array of unsigned chars which will be set to the number's bits
-// size: the length of bits
-// es: get_bits((unsigned int) 42, ..., 4)
-// -> 0 0 0 0  0 0 0 0  0 0 1 0  1 0 1 0
-void get_bits(void *number, unsigned char bits[], unsigned long size) {
+void get_bits(void *number, unsigned char bits[], unsigned long size,
+              bool bigEndian) {
   printf("\n");
-  printf("hex: ");
+  printf("hex (in little endian): ");
 
   // Iterate through the number byte-by-byte
   for (unsigned long i = 0; i < size / CHAR_BIT; ++i) {
@@ -23,8 +20,11 @@ void get_bits(void *number, unsigned char bits[], unsigned long size) {
 
     unsigned long j = 0;
     while (byte > 0) {
-      // FIXME: doesnt work with big endian
-      bits[size - (i * CHAR_BIT) - j - 1] = byte % 2;
+      if (!bigEndian) {
+        bits[size - (i * CHAR_BIT) - j - 1] = byte % 2;
+      } else {
+        bits[(i * CHAR_BIT) + j] = byte % 2;
+      }
       byte /= 2;
       j++;
     }
@@ -41,90 +41,62 @@ void print_bits(unsigned char bits[], unsigned long size) {
 }
 
 void stampaCodifica(void *number, unsigned long size, bool bigEndian) {
-  // FIXME: doesnt work with big endian
-  if (size == 4) {
-    // We want to allocate an unsigned char foreach bit of the input, and size
-    // is in bytes so we multiply bt CHAR_BIT (bits in a byte)
-    unsigned char *bits = calloc(sizeof(unsigned char), size * CHAR_BIT);
-    get_bits(number, bits, size * CHAR_BIT);
-    print_bits(bits, size * CHAR_BIT);
+  // We want to allocate an unsigned char foreach bit of the input, and size
+  // is in bytes so we multiply bt CHAR_BIT (bits in a byte)
+  unsigned char *bits = calloc(sizeof(unsigned char), size * CHAR_BIT);
+  get_bits(number, bits, size * CHAR_BIT, bigEndian);
+  print_bits(bits, size * CHAR_BIT);
 
-    // Print sign bit, exponent bits and mantissa bits in binary form.
-    printf("sign bit: %u\n", bits[0]);
-    printf("exponent bits: ");
-    for (unsigned long i = 0 + 1; i < 8 + 1; ++i) {
-      printf("%u", bits[i]);
-    }
-    printf("\n");
-    printf("mantissa bits: ");
-    for (unsigned long i = 8 + 1; i < (size * CHAR_BIT); ++i) {
-      printf("%u", bits[i]);
-    }
-    printf("\n");
-
-    free(bits);
-    return;
+  unsigned long PADDING, EXPONENT;
+  switch (size) {
+    case 4:
+      PADDING = 0;
+      EXPONENT = 8;
+      break;
+    case 8:
+      PADDING = 0;
+      EXPONENT = 11;
+      break;
+    case 16:
+      PADDING = 48;
+      EXPONENT = 15;
+      break;
+    default:
+      perror("Unsupported size");
+      return;
   }
-  if (size == 8) {
-    unsigned char *bits = calloc(sizeof(unsigned char), size * CHAR_BIT);
-    get_bits(number, bits, size * CHAR_BIT);
-    print_bits(bits, size * CHAR_BIT);
-
-    // Print sign bit, exponent bits and mantissa bits in binary form.
-    printf("sign bit: %u\n", bits[0]);
-    printf("exponent bits: ");
-    for (unsigned long i = 0 + 1; i < 11 + 1; ++i) {
-      printf("%u", bits[i]);
-    }
-    printf("\n");
-    printf("mantissa bits: ");
-    for (unsigned long i = 11 + 1; i < (size * CHAR_BIT); ++i) {
-      printf("%u", bits[i]);
-    }
-    printf("\n");
-
-    free(bits);
-    return;
+  printf("sign bit: %u\n", bits[PADDING]);
+  printf("exponent bits: ");
+  for (unsigned long i = (PADDING + 1); i < (PADDING + EXPONENT + 1); ++i) {
+    printf("%u", bits[i]);
   }
-  if (size == 16) {
-    unsigned char *bits = calloc(sizeof(unsigned char), size * CHAR_BIT);
-    get_bits(number, bits, size * CHAR_BIT);
-    print_bits(bits, size * CHAR_BIT);
-
-    // Print sign bit, exponent bits and mantissa bits in binary form.
-    printf("sign bit: %u\n", bits[0]);
-    printf("exponent bits: ");
-    for (unsigned long i = 0 + 1; i < 15 + 1; ++i) {
-      printf("%u", bits[i]);
-    }
-    printf("\n");
-    printf("mantissa bits: ");
-    for (unsigned long i = 15 + 1; i < (size * CHAR_BIT); ++i) {
-      printf("%u", bits[i]);
-    }
-    printf("\n");
-
-    free(bits);
-    return;
+  printf("\n");
+  printf("mantissa bits: ");
+  for (unsigned long i = (PADDING + EXPONENT + 1);
+       i < (PADDING + (size * CHAR_BIT)); ++i) {
+    printf("%u", bits[i]);
   }
+  printf("\n");
+
+  free(bits);
+  return;
 }
 
 int main() {
   float af;
   double ad;
   long double ald;
+  long double tmp;
   printf("Insert a real number: ");
 
   // Scanf-ing to the long double to keep the max precision, we'll reduce it
   // later
-  scanf("%Lf", &ald);
+  scanf("%Lf", &tmp);
 
   // This casts don't change ald, right?
-  af = (float)ald;
-  ad = (double)ald;
-
-  // Understand if pc is big endian or little endian
-  bool bigEndian;
+  af = (float)tmp;
+  ad = (double)tmp;
+  ald = (long double)tmp;
 
   // How check is represented in memory:
 
@@ -141,7 +113,7 @@ int main() {
 
   unsigned int check = 0x12345678;
   unsigned char c = *(unsigned char *)&check;
-  bigEndian = (c == 0x12);
+  bool bigEndian = (c == 0x12);
 
   // Display sizes in bits and bytes of all vars, CHAR_BIT was found in limits.h
   // and contains how many bytes in a bit for this architecture.
@@ -151,7 +123,7 @@ int main() {
          sizeof(ad) * CHAR_BIT);
   printf("Length of a long double: %lu (Bytes), %lu (bits)\n", sizeof(ald),
          sizeof(ald) * CHAR_BIT);
-  printf("\n");
+  printf("%s\n", bigEndian ? "Big Endian" : "Little endian");
 
   // Display codification of the variables
   stampaCodifica((void *)&af, sizeof(af), bigEndian);
