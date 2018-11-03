@@ -175,6 +175,22 @@ line* linear_search(line lines[], char* query, int lines_len)
 
 line* binary_search(line** lines, char* query, int lines_len)
 {
+    int l = 0, r = lines_len - 1;
+    while (l <= r) {
+        int m = (l + r) / 2;
+
+        char* res = strstr(lines[m]->start, query);
+
+        if ((res == NULL) || (res != lines[m]->start)) {
+            if (strcmp(query, lines[m]->start) > 0) {
+                l = m + 1;
+            } else {
+                r = m - 1;
+            }
+        } else {
+            return lines[m];
+        }
+    }
     return NULL;
 }
 
@@ -226,7 +242,7 @@ int main()
             lines[i].arrival_time, &(lines[i].delay));
     }
 
-    bool is_sorted = false;
+    bool is_sorted_start = false;
     line** sorted_lines = calloc(sizeof(line*), lines_len);
     for (int i = 0; i < lines_len; ++i) {
         sorted_lines[i] = &lines[i];
@@ -256,22 +272,19 @@ int main()
         }
         case SORT_DATETIME: {
             mergesort(sorted_lines, 0, lines_len - 1, line_date_less_than, line_date_equal_to);
-            is_sorted = true;
             break;
         }
         case SORT_CODE: {
             mergesort(sorted_lines, 0, lines_len - 1, line_code_less_than, line_code_equal_to);
-            is_sorted = true;
             break;
         }
         case SORT_START: {
             mergesort(sorted_lines, 0, lines_len - 1, line_start_less_than, line_start_equal_to);
-            is_sorted = true;
+            is_sorted_start = true;
             break;
         }
         case SORT_DESTINATION: {
             mergesort(sorted_lines, 0, lines_len - 1, line_destination_less_than, line_destination_equal_to);
-            is_sorted = true;
             break;
         }
         case SEARCH_START: {
@@ -279,9 +292,11 @@ int main()
             char query[COMMAND_BUFFER];
             scanf("%s", query);
             line* res;
-            if (is_sorted) {
+            if (is_sorted_start) {
+                puts("Binary searching");
                 res = binary_search(sorted_lines, query, lines_len);
             } else {
+                puts("Linear searching");
                 res = linear_search(lines, query, lines_len);
             }
             if (res == NULL) {
