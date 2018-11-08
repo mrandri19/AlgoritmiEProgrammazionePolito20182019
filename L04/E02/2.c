@@ -2,81 +2,73 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void print_arr(int v[], int n) {
-  for (int i = 0; i < n; i++) {
-    printf("%d\n", v[i]);
+int count_occurrences(int *v, int l, int r, int element) {
+  int counter = 0;
+  for (int i = l; i <= r; ++i) {
+    if (element == v[i]) counter++;
   }
+  return counter;
 }
 
-void swap(int A[], int i, int j) {
-  int tmp = A[i];
-  A[i] = A[j];
-  A[j] = tmp;
-}
-
-int partition(int A[], int l, int r) {
-  int i = l - 1, j = r;
-
-  while (true) {
-    while (A[++i] < A[r]) {
-    };
-    while (A[--j] > A[r]) {
-      if (j == l) {
-        break;
-      }
-    };
-
-    if (i >= j) {
-      break;
-    }
-    swap(A, i, j);
-  }
-  swap(A, i, r);
-  return i;
-}
-
-void quicksort_aux(int A[], int l, int r) {
-  if (r <= l)
-    return;
-  int q = partition(A, l, r);
-  quicksort_aux(A, l, q - 1);
-  quicksort_aux(A, q + 1, r);
-}
-
-void quicksort(int A[], int n) {
-  int l = 0, r = n - 1;
-  quicksort_aux(A, l, r);
-}
-
-int majority(int *a, int N) {
-  int current_elem = a[0];
-  int occurrences = 1;
-  for (int i = 1; i < N; ++i) {
-    if (a[i] == current_elem) {
-      occurrences++;
+int majority_rec(int *v, int l, int r) {
+  int len = r - l + 1;
+  int mid = (r + l) / 2;
+  if (len == 1) {
+    return v[l];
+  } else if (len == 2) {
+    if (v[l] == v[r]) {
+      return v[l];
     } else {
-      if (occurrences > (N / 2)) {
-        return a[i - 1];
-      };
-      occurrences = 1;
-      current_elem = a[i];
+      return -1;
     }
+  } else {
+    int out1 = majority_rec(v, l, mid);
+    int out2 = majority_rec(v, mid + 1, r);
+
+    if (out1 == -1 && out2 == -1) {
+      return -1;
+    }
+    if (out1 != -1 && out2 == -1) {
+      // count occurrences of out1
+      int occ = count_occurrences(v, l, r, out1);
+      if (occ > len / 2) {
+        return out1;
+      } else {
+        return -1;
+      }
+    }
+    if (out1 == -1 && out2 != -1) {
+      // count occurrences of out2
+      int occ = count_occurrences(v, l, r, out2);
+      if (occ > len / 2) {
+        return out2;
+      } else {
+        return -1;
+      }
+    }
+    if (out1 != -1 && out2 != -1) {
+      // count occurrences of out1 and out2 and pick the best
+      int occ1 = count_occurrences(v, l, r, out1);
+      int occ2 = count_occurrences(v, l, r, out2);
+      if (occ1 > len / 2) {
+        return out1;
+      } else if (occ2 > len / 2) {
+        return out2;
+      } else {
+        return -1;
+      }
+    }
+
+    printf("Impossible!\n");
+    return -1;
   }
-  return -1;
 }
+
+int majority(int *v, int n) { return majority_rec(v, 0, n - 1); }
 
 int main() {
-  int n = 7;
-  int v[] = {
-      3, 3, 9, 4, 3, 5, 3,
-  };
-
-  print_arr(v, n);
-
-  quicksort(v, n);
-
-  printf("\n");
-  print_arr(v, n);
+  int v[] = {3, 3, 9, 4, 3, 5, 3};
+  int n = sizeof(v) / sizeof(v[0]);
 
   int m = majority(v, n);
   if (m != -1) {
