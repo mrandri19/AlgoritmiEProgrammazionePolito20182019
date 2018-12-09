@@ -133,7 +133,7 @@ int main() {
       print_character(*cp);
 
       printf("Character with equipment:\n");
-      print_character_with_equimpment(cp, equipments);
+      print_character_with_equipment(cp, equipments);
 
       break;
     }

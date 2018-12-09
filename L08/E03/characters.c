@@ -13,7 +13,7 @@ void print_character(character c) {
          c.stats.mag, c.stats.spr);
 }
 
-void print_character_with_equimpment(character *cp, equipment_t *equipments) {
+void print_character_with_equipment(character *cp, equipment_t *equipments) {
   int hp = cp->stats.hp;
   int mp = cp->stats.mp;
   int atk = cp->stats.atk;
