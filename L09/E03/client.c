@@ -4,8 +4,7 @@
 #include <string.h>
 
 #include "character_list.h"
-#include "equipment_array.h"
-#include "inventory_array.h"
+#include "character.h"
 
 #define COMMAND_BUF 256
 #define DEBUG true
@@ -20,6 +19,7 @@ typedef enum {
   stats,
   unknown
 } command;
+
 
 command parse_command(char *command_s) {
   if (strcmp(command_s, "lc") == 0) {
@@ -67,8 +67,6 @@ int main() {
         return 1;
       }
 
-      printf("aAAAAAAAAA");
-
       characters = character_list_from_file(fp, &equipments);
 
       fclose(fp);
@@ -87,30 +85,55 @@ int main() {
       break;
     }
     case add_character: {
-      character_t character = character_load_from_keyboard(equipments);
+      character_t character = character_load_from_keyboard();
+
+      size_t id = equipment_array_add_equipment_for_character(&equipments);
+      character_set_equipment(&character, id);
 
       character_list_add_character(characters, character);
       break;
     }
     case remove_character: {
-      // TODO: this keeps his equipment into the equipment array, what
-      // should we do?
       printf("insert character code to remove: ");
       int id;
       scanf("%d", &id);
+
       character_list_remove_character_by_id(characters, id);
       break;
     }
     case add_object_from_inventory: {
-      // TODO: figure out how to design
-      // character_add_object_from_inventory(&characters_bad, &equipments,
-      // &equipments_len, &inventory);
+      printf("insert character code to add object: ");
+      int id;
+      scanf("%d", &id);
+
+      printf("insert object name: ");
+      char name[COMMAND_BUF];
+      scanf("%s", name);
+
+      character_t c = character_list_find_character_by_id(characters, id);
+
+      size_t eq_id = character_get_equipment_id(c);
+      equipment_t eq = equipments_array_get_equipment_by_id(equipments,eq_id);
+      character_add_object_from_inventory(eq, name, inventory);
+
       break;
     }
     case remove_object_from_inventory: {
-      // TODO: figure out how to design
-      // character_remove_object_from_inventory(&characters_bad, &equipments,
-      //  &equipments_len, &inventory);
+      printf("insert character code to remove object: ");
+      int id;
+      scanf("%d", &id);
+
+      printf("insert object name: ");
+      char name[COMMAND_BUF];
+      scanf("%s", name);
+
+      character_t c = character_list_find_character_by_id(characters, id);
+
+
+      size_t eq_id = character_get_equipment_id(c);
+      equipment_t eq = equipments_array_get_equipment_by_id(equipments,eq_id);
+      character_remove_object_from_inventory(eq, name, inventory);
+
       break;
     }
     case stats: {
@@ -124,7 +147,7 @@ int main() {
       character_print(character);
 
       printf("Character with equipment:\n");
-      character_print_with_equipment(character, equipments);
+      character_print_with_equipment(character, equipments, inventory);
 
       break;
     }
@@ -149,3 +172,5 @@ int main() {
 
   return 0;
 }
+
+

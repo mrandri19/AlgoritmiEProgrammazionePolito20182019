@@ -11,21 +11,27 @@ equipment_array_t equipment_array_new() {
   return arr;
 }
 
-size_t equipment_array_append(equipment_array_t *arr, equipment_t equipment) {
-  printf("called");
+equipment_t equipments_array_get_equipment_by_id(equipment_array_t equipments,
+                                                 size_t id) {
+  return equipments.equipments[id];
+}
 
+size_t equipment_array_append(equipment_array_t *arr, equipment_t equipment) {
   // If empty allocate
   if (arr->capacity == 0) {
-    arr->size = 1;
+    arr->size = 0;
     arr->capacity = 1;
-    arr->equipments = calloc(arr->size, sizeof(equipment_t));
+    arr->equipments = calloc(arr->capacity, sizeof(equipment_t));
   }
+  // If full reallocate one double its size
   if (arr->size == arr->capacity) {
-    arr->size *= 2;
-    arr->equipments = realloc(arr->equipments, arr->size);
+    arr->capacity *= 2;
+    arr->equipments =
+        realloc(arr->equipments, arr->capacity * sizeof(equipment_t));
   }
 
-  arr->equipments[arr->size++] = equipment;
+  arr->equipments[arr->size] = equipment;
+  arr->size++;
 
   return (arr->size - 1);
 }

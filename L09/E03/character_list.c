@@ -108,16 +108,13 @@ character_list_t character_list_add_character(character_list_t list,
 character_list_t character_list_from_file(FILE *fp,
                                           equipment_array_t *equipments) {
 
-  printf("before");
   character_list_t characters = character_list_new();
-  printf("asdawdaw");
 
   int len = 0;
   fscanf(fp, "%d ", &len);
 
   // then for each character
   for (int i = 0; i < len; i++) {
-    printf("loading");
 
     character_t c;
     fscanf(fp, "PG%d %s %s %d %d %d %d %d %d ", &c.id, c.name, c.class,
