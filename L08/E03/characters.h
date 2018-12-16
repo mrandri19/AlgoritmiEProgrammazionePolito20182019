@@ -17,7 +17,6 @@ typedef struct linked_list {
   struct linked_list *tail;
 } linked_list_t;
 
-// TODO: refactor module to use this instead
 typedef struct {
   linked_list_t *first; // Pointer to the __first__ element of the linked list
   linked_list_t *last;  // Pointer to the __last__ element of the linked list;
@@ -25,7 +24,7 @@ typedef struct {
 
 void print_character(character c);
 
-void print_character_with_equimpment(character *cp, equipment_t *equipments);
+void print_character_with_equipment(character *cp, equipment_t *equipments);
 
 linked_list_t *new_character_linked_list();
 

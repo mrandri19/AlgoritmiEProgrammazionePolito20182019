@@ -46,12 +46,10 @@ command parse_command(char *command_s) {
 }
 
 int main() {
-  // TODO: refactor away this cancer
   characters_t characters;
   linked_list_t *characters_bad = new_character_linked_list();
   characters.first = characters_bad;
   characters.last = characters_bad;
-  // END TODO
 
   int equipments_len = 0;
   equipment_t *equipments = NULL;
@@ -76,7 +74,6 @@ int main() {
 
       load_characters_from_file(fp_characters, &characters_bad, &equipments,
                                 &equipments_len);
-      // TODO: refactor away this cancer
       characters.first = characters_bad;
       characters.last = last_element_linked_list(characters_bad);
 
@@ -98,7 +95,6 @@ int main() {
     case add_character: {
       load_characters_from_keyboard(&characters_bad, &equipments,
                                     &equipments_len);
-      // TODO: fix wrapper
       break;
     }
     case remove_character: {
@@ -133,7 +129,7 @@ int main() {
       print_character(*cp);
 
       printf("Character with equipment:\n");
-      print_character_with_equimpment(cp, equipments);
+      print_character_with_equipment(cp, equipments);
 
       break;
     }
