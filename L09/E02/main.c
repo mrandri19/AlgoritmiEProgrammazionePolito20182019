@@ -2,13 +2,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-static int *tableS;
-static int *tableE;
-static int *tableR;
-static int *tableT;
+#include <string.h>
 
 static int sapphires, emeralds, rubies, topazes;
+
+static int ****tableS;
 static int len = 0;
 
 int solveS(int s, int e, int r, int t);
@@ -21,18 +19,8 @@ int max(int a, int b) { return ((a > b) ? a : b); }
 int solveS(int s, int e, int r, int t) {
   assert(s >= 0 && e >= 0 && r >= 0 && t >= 0);
 
-  // TODO: fucking finish this
-  int offset = (s * (emeralds + 1) * (rubies + 1) * topazes) +
-               (e * (rubies + 1) * (topazes + 1)) + (r * (topazes + 1)) + t;
+  int memoized_result = tableS[s][e][r][t];
 
-  if (offset >= len) {
-    printf("len = %d\n", len);
-    printf("offset = %d\n", offset);
-    printf("%d %d %d %d\n", s, e, r, t);
-    assert(false);
-  }
-
-  int memoized_result = tableS[offset];
   if (memoized_result != -1) {
     assert(memoized_result < len);
   }
@@ -51,7 +39,7 @@ int solveS(int s, int e, int r, int t) {
 
   int result = 1 + best;
 
-  tableS[offset] = result;
+  tableS[s][e][r][t] = result;
 
   return result;
 }
@@ -104,26 +92,29 @@ int main() {
 
     int total = sapphires + emeralds + rubies + topazes;
 
+    len = (sapphires + 1) + (emeralds + 1) + (rubies + 1) + (topazes + 1);
+
+    // Malloc 4D...
+    // I spent 2 hours trying to allocate a contiguos vector and then
+    tableS = malloc((sapphires + 1) * sizeof(int ***));
+    for (int i = 0; i < (sapphires + 1); i++) {
+      tableS[i] = malloc((emeralds + 1) * sizeof(int **));
+      for (int j = 0; j < (emeralds + 1); j++) {
+        tableS[i][j] = malloc((rubies + 1) * sizeof(int *));
+        for (int k = 0; k < (rubies + 1); k++) {
+          tableS[i][j][k] = malloc((topazes + 1) * sizeof(int));
+          for (int l = 0; l < (topazes + 1); l++) {
+            tableS[i][j][k][l] = -1;
+          }
+        }
+      }
+    }
+
     printf("TEST #%d\n", i + 1);
     printf("zaffiro = %d, rubino = %d, topazio = %d, smeraldo = %d, TOT = %d\n",
            sapphires, rubies, topazes, emeralds, total);
 
     int best = 0;
-
-    len = (sapphires + 1) * (emeralds + 1) * (rubies + 1) * (topazes + 1);
-    tableS = malloc(len * sizeof(int));
-    tableE = malloc(len * sizeof(int));
-    tableR = malloc(len * sizeof(int));
-    tableT = malloc(len * sizeof(int));
-
-    for (size_t i = 0; i < len; i++) {
-      tableS[i] = -1;
-    }
-
-    assert(tableS != NULL);
-    assert(tableE != NULL);
-    assert(tableR != NULL);
-    assert(tableT != NULL);
 
     best = max(best, solveS(sapphires, emeralds, rubies, topazes));
     best = max(best, solveE(sapphires, emeralds, rubies, topazes));
@@ -131,11 +122,6 @@ int main() {
     best = max(best, solveT(sapphires, emeralds, rubies, topazes));
 
     printf("Collana massima di lunghezza %d\n", best);
-
-    free(tableS);
-    free(tableE);
-    free(tableR);
-    free(tableT);
   }
 
   return 0;
