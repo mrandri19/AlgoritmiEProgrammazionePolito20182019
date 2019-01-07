@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 
   graph_t G = graph_load(fp, false);
 
-  // graph_print_vertexes(G);
+  graph_print_vertexes(G);
 
   printf("%s\n",
          (graph_vertexes_form_complete_subgraph(G, "Shiva", "Ifrit", "Alderaan")
@@ -29,7 +29,9 @@ int main(int argc, char **argv) {
               ? "true"
               : "false"));
 
+  printf("\nSwitching\n\n");
   graph_switch_to_adjacency_list(G);
+  graph_print_vertexes(G);
 
   printf("%s\n",
          (graph_vertexes_form_complete_subgraph(G, "Shiva", "Ifrit", "Alderaan")

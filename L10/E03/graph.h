@@ -1,25 +1,20 @@
+#ifndef GRAPH_T
+#define GRAPH_T
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
+#include "edge.h"
+#include "linked_list.h"
 #include "symbol_table.h"
 
-typedef struct {
-  size_t a;
-  size_t a_net;
-
-  size_t b;
-  size_t b_net;
-
-  int weight;
-} edge_t;
-
 struct graph {
-  // A list of edges
-  edge_t *adjacency_list;
-  size_t adjacency_list_len;
+  // Adjacency list
+  linked_list_t *adjacency_list;
+  size_t vertexes_len;
 
   // Maps 2 indexes to a weight
   int **adjacency_matrix;
@@ -36,7 +31,7 @@ graph_t graph_empty() {
   graph_t G = (graph_t)malloc(sizeof(struct graph));
 
   G->adjacency_list = NULL;
-  G->adjacency_list_len = 0;
+  G->vertexes_len = 0;
   G->adjacency_matrix = NULL;
   G->vertexes = symbol_table_empty();
   G->using_adjacency_list = false;
@@ -47,7 +42,6 @@ graph_t graph_empty() {
 graph_t graph_load(FILE *fp, bool with_adjacency_list) {
   graph_t G = graph_empty();
 
-  size_t vertexes_len = 0, edges_len = 0;
   char a_name[LEN], a_net_name[LEN], b_name[LEN], b_net_name[LEN];
   int weight;
 
@@ -56,28 +50,25 @@ graph_t graph_load(FILE *fp, bool with_adjacency_list) {
                 &weight) != EOF) {
     ssize_t a_index = symbol_table_find_by_name(G->vertexes, a_name);
     if (a_index == -1) {
-      vertexes_len++;
+      G->vertexes_len++;
       a_index = symbol_table_add(G->vertexes, a_name);
     }
 
     ssize_t b_index = symbol_table_find_by_name(G->vertexes, b_name);
     if (b_index == -1) {
-      vertexes_len++;
+      G->vertexes_len++;
       b_index = symbol_table_add(G->vertexes, b_name);
     }
-
-    edges_len++;
   }
 
   if (with_adjacency_list) {
     G->using_adjacency_list = true;
 
     // Allocate adjaceny_list
-    G->adjacency_list = (edge_t *)calloc(edges_len, sizeof(edge_t));
-    G->adjacency_list_len = edges_len;
+    G->adjacency_list =
+        (linked_list_t *)calloc(G->vertexes_len, sizeof(linked_list_t));
 
     // Fill list
-    int i = 0;
     fseek(fp, 0, SEEK_SET);
     while (fscanf(fp, "%s %s %s %s %d ", a_name, a_net_name, b_name, b_net_name,
                   &weight) != EOF) {
@@ -88,20 +79,17 @@ graph_t graph_load(FILE *fp, bool with_adjacency_list) {
       ssize_t b_index = symbol_table_find_by_name(G->vertexes, b_name);
       assert(b_index > -1);
 
-      // We can safely cast since we asserted the positiveness
-      G->adjacency_list[i++] = (edge_t){.a = (size_t)a_index,
-                                        .a_net = 0,
-                                        .b = (size_t)b_index,
-                                        .b_net = 0,
-                                        .weight = weight};
+      linked_list_insert(
+          &(G->adjacency_list[a_index]),
+          (edge_t){.id = (size_t)a_index, .id_net = 0, .weight = weight});
     }
 
     return G;
   } else {
     // Allocate matrix
-    G->adjacency_matrix = (int **)calloc(vertexes_len, sizeof(size_t *));
-    for (size_t i = 0; i < vertexes_len; i++) {
-      G->adjacency_matrix[i] = (int *)calloc(vertexes_len, sizeof(size_t));
+    G->adjacency_matrix = (int **)calloc(G->vertexes_len, sizeof(size_t *));
+    for (size_t i = 0; i < G->vertexes_len; i++) {
+      G->adjacency_matrix[i] = (int *)calloc(G->vertexes_len, sizeof(size_t));
     }
 
     // Fill matrix
@@ -153,8 +141,8 @@ int comparator_edge(const void *a_, const void *b_) {
   const edge_t *a = (const edge_t *)a_;
   const edge_t *b = (const edge_t *)b_;
 
-  return strcmp(symbol_table_get(global_vertexes, a->b),
-                symbol_table_get(global_vertexes, b->b));
+  return strcmp(symbol_table_get(global_vertexes, a->id),
+                symbol_table_get(global_vertexes, b->id));
 }
 
 void graph_print_vertexes(graph_t G) {
@@ -178,26 +166,15 @@ void graph_print_vertexes(graph_t G) {
       edge_t *edges = (edge_t *)calloc(vertexes_len, sizeof(edge_t));
 
       size_t k = 0;
-      for (size_t j = 0; j < G->adjacency_list_len; ++j) {
-        if (G->adjacency_list[j].a == index) {
-          edges[k++] = G->adjacency_list[j];
-        }
-        if (G->adjacency_list[j].b == index) {
-          edges[k] = G->adjacency_list[j];
+      // Fill the edges list with the edges of a certain vertex
 
-          size_t tmp;
-          tmp = edges[k].b;
-          edges[k].b = edges[k].a;
-          edges[k].a = tmp;
+      linked_list_print(G->adjacency_list, index);
 
-          k++;
-        }
-      }
       qsort(edges, vertexes_len, sizeof(edge_t), comparator_edge);
 
       for (size_t l = 0; l < k; ++l) {
-        printf("\t%s <- %d -> %s\n", symbol_table_get(G->vertexes, edges[l].a),
-               edges[l].weight, symbol_table_get(G->vertexes, edges[l].b));
+        printf("\t%s <- %d -> %s\n", symbol_table_get(G->vertexes, index),
+               edges[l].weight, symbol_table_get(G->vertexes, edges[l].id));
       }
 
       assert(k <= vertexes_len);
@@ -261,34 +238,34 @@ bool graph_vertexes_form_complete_subgraph(graph_t G, char *first, char *second,
 
   if (G->using_adjacency_list) {
     int weight_12 = 0, weight_23 = 0, weight_31 = 0;
-    for (size_t i = 0; i < G->adjacency_list_len; ++i) {
-      if (G->adjacency_list[i].a == (size_t)first_id &&
-          G->adjacency_list[i].b == (size_t)second_id) {
-        weight_12 = G->adjacency_list[i].weight;
-      }
-      if (G->adjacency_list[i].a == (size_t)second_id &&
-          G->adjacency_list[i].b == (size_t)first_id) {
-        weight_12 = G->adjacency_list[i].weight;
-      }
 
-      if (G->adjacency_list[i].a == (size_t)second_id &&
-          G->adjacency_list[i].b == (size_t)third_id) {
-        weight_23 = G->adjacency_list[i].weight;
-      }
-      if (G->adjacency_list[i].a == (size_t)third_id &&
-          G->adjacency_list[i].b == (size_t)second_id) {
-        weight_23 = G->adjacency_list[i].weight;
-      }
+    // For each element of linked_list[first_id] check if id == 2
+    // if (G->adjacency_list[i].a == (size_t)first_id &&
+    //     G->adjacency_list[i].b == (size_t)second_id) {
+    //   weight_12 = G->adjacency_list[i].weight;
+    // }
+    // if (G->adjacency_list[i].a == (size_t)second_id &&
+    //     G->adjacency_list[i].b == (size_t)first_id) {
+    //   weight_12 = G->adjacency_list[i].weight;
+    // }
 
-      if (G->adjacency_list[i].a == (size_t)third_id &&
-          G->adjacency_list[i].b == (size_t)first_id) {
-        weight_31 = G->adjacency_list[i].weight;
-      }
-      if (G->adjacency_list[i].a == (size_t)first_id &&
-          G->adjacency_list[i].b == (size_t)third_id) {
-        weight_31 = G->adjacency_list[i].weight;
-      }
-    }
+    // if (G->adjacency_list[i].a == (size_t)second_id &&
+    //     G->adjacency_list[i].b == (size_t)third_id) {
+    //   weight_23 = G->adjacency_list[i].weight;
+    // }
+    // if (G->adjacency_list[i].a == (size_t)third_id &&
+    //     G->adjacency_list[i].b == (size_t)second_id) {
+    //   weight_23 = G->adjacency_list[i].weight;
+    // }
+
+    // if (G->adjacency_list[i].a == (size_t)third_id &&
+    //     G->adjacency_list[i].b == (size_t)first_id) {
+    //   weight_31 = G->adjacency_list[i].weight;
+    // }
+    // if (G->adjacency_list[i].a == (size_t)first_id &&
+    //     G->adjacency_list[i].b == (size_t)third_id) {
+    //   weight_31 = G->adjacency_list[i].weight;
+    // }
 
     return (weight_12 * weight_23 * weight_31) > 0;
   } else {
@@ -332,41 +309,16 @@ void graph_switch_to_adjacency_list(graph_t G) {
     exit(EXIT_FAILURE);
   }
   G->using_adjacency_list = true;
-  G->adjacency_list_len = 0;
+  G->vertexes_len = 0;
 
   // Generate adjacency list from matrix
-  for (size_t i = 0; i < symbol_table_size(G->vertexes); ++i) {
-    for (size_t j = 0; j < symbol_table_size(G->vertexes); ++j) {
-      // Consider only the upper half of matrix
-      if (j >= i) {
-        printf("%4d ", G->adjacency_matrix[i][j]);
-        if (G->adjacency_matrix[i][j] != 0) {
-          G->adjacency_list_len++;
-        }
-      } else {
-        printf("     ");
-      }
-    }
-    printf("\n");
-  }
 
-  printf("%zu\n", G->adjacency_list_len);
-  G->adjacency_list = (edge_t *)calloc(G->adjacency_list_len, sizeof(edge_t));
-
-  size_t k = 0;
-  for (size_t i = 0; i < symbol_table_size(G->vertexes); ++i) {
-    for (size_t j = 0; j < symbol_table_size(G->vertexes); ++j) {
-      if (j >= i) {
-        if (G->adjacency_matrix[i][j] != 0) {
-          G->adjacency_list[k++] = (edge_t){.a = i,
-                                            .a_net = 0,
-
-                                            .weight = G->adjacency_matrix[i][j],
-
-                                            .b = j,
-                                            .b_net = 0};
-        }
-      }
+  // For each vertex
+  for (size_t i = 0; i < G->vertexes_len; ++i) {
+    for (size_t j = 0; j < G->vertexes_len; ++j) {
+      // TODO: finish
     }
   }
 }
+
+#endif
