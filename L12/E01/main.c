@@ -5,7 +5,6 @@
 #include <string.h>
 
 #define VERTEX_LEN 30 + 1
-#define INFINITY 2147483647 // (Radio edit)
 
 int linear_search(char *needle, char **haystack, size_t len) {
   for (size_t i = 0; i < len; ++i) {
